@@ -1,9 +1,14 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception */
+/* Modified 2026-10 by Thomas Treu for GLITCH: the GLITCH panel (glitch_ui.inc) replaces the FM1 screen under FM1_GLITCH. */
 #include "instrument.h"
 #include "fm_patch.h"
 #include "version.h"
 #include "fm1_engine_control.h"
+#include "glitch.h"
 #include <string.h>
+#if FM1_GLITCH
+#include "glitch_ui.inc"
+#else
 enum {
     BACK = 0x0000,
     PANEL = 0x18e3,
@@ -2972,3 +2977,4 @@ static void algorithm_draw(unsigned algorithm, unsigned muted)
         number(x + 8, y + 3, i + 1, 1, 1, muted & (1U << i) ? DIM : BACK, bg);
     }
 }
+#endif /* FM1_GLITCH */

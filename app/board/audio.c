@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception */
+/* Modified 2026-10 by Thomas Treu for GLITCH: adds fm1_audio_load_percent() for the CPU figure. */
 #include "fm1_audio.h"
 #include "fm1_gpio.h"
 #include "fm1_engine_control.h"
@@ -10,6 +11,7 @@ static int32_t receive[2][FM1_BLOCK_WORDS] DMA_ALIGNED;
 static int32_t transmit[2][FM1_BLOCK_WORDS] DMA_ALIGNED;
 static int32_t rendered[FM1_BLOCK_WORDS] DMA_ALIGNED;
 static struct fm1_audio_stats statistics;
+static uint32_t recent_ticks; /* slowly falling peak of the interrupt time */
 static uint32_t block_ticks, previous_tick;
 static uint8_t initialized, previous_valid;
 static volatile unsigned mute_depth;
@@ -60,6 +62,8 @@ FM1_AUDIO_CODE __attribute__((interrupt(""))) void fm1_audio_irq(void)
     }
     used = elapsed(start, FM1_AUDIO_TIMER_COUNT);
     if (used > statistics.peak_ticks) statistics.peak_ticks = used;
+    if (used > recent_ticks) recent_ticks = used;
+    else recent_ticks -= recent_ticks >> 9;        /* halves in about 1 s */
     ++statistics.blocks;
 }
 void fm1_audio_suspend(void)
@@ -109,6 +113,11 @@ int fm1_audio_start(void)
     FM1_ALNK_CON0 |= 1U << 11;
     initialized = 1;
     return 0;
+}
+/* Control task: audio interrupt load in percent of one block (recent peak). */
+unsigned fm1_audio_load_percent(void)
+{
+    return block_ticks ? (unsigned)((uint64_t)recent_ticks * 100U / block_ticks) : 0;
 }
 void fm1_audio_stats_read(struct fm1_audio_stats *out)
 {

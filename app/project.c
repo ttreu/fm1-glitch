@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception */
+/* Modified 2026-10 by Thomas Treu for GLITCH: FM1 project slots, import and export compiled out under FM1_GLITCH; settings kept. */
 /* Modified 2026-10-17: bind tuning to project contents, not device settings;
  * preserve valid version-1 entries before rewriting their project records;
  * defer edit checkpoints until allocation succeeds; reject tuned saves that
@@ -9,6 +10,12 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include "glitch.h"
+#if FM1_GLITCH
+#define FM1_SONGS __attribute__((unused)) /* used only by the FM1 project slots */
+#else
+#define FM1_SONGS
+#endif
 
 /* One sector per project, plus one shared staging sector. Device settings fit
  * after the last slot's project; changing settings preserves that project.
@@ -41,7 +48,7 @@ static int recover_staging(void);
 /* Older SDKs retain their checkpoint/apply path; current engines defer the
  * checkpoint until every required voice allocation has succeeded. */
 extern int groove_project_apply_edit(const struct groove_project *, unsigned) __attribute__((weak));
-static int apply_edit(const struct groove_project *p, unsigned operation)
+static FM1_SONGS int apply_edit(const struct groove_project *p, unsigned operation)
 {
     if (groove_project_apply_edit)
         return groove_project_apply_edit(p, operation);
@@ -257,7 +264,7 @@ static uint32_t project_tuning_key(void)
     uint32_t crc = groove_crc32(~0U, &record.header.target, sizeof record.header.target);
     return ~groove_crc32(crc, &record.project, sizeof record.project);
 }
-static uint32_t block_crc(const struct tuning_block *b)
+static FM1_SONGS uint32_t block_crc(const struct tuning_block *b)
 { return ~groove_crc32(~0U, b, offsetof(struct tuning_block, crc)); }
 static int tuning_tables_valid(const struct groove_tuning *t)
 {
@@ -267,7 +274,7 @@ static int tuning_tables_valid(const struct groove_tuning *t)
                 return 0;
     return 1;
 }
-static void tuning_zero(void)
+static FM1_SONGS void tuning_zero(void)
 {
     static const struct groove_tuning zero[GROOVE_TRACKS];
     if (groove_tuning_apply)
@@ -293,7 +300,7 @@ static int tuning_has_values(const struct groove_tuning tables[GROOVE_TRACKS])
             if (tables[i].main[k] || tables[i].alt[k]) return 1;
     return 0;
 }
-static int tuning_can_save(void)
+static FM1_SONGS int tuning_can_save(void)
 {
     if (!groove_tuning_capture) return 0;
     int r = tuning_blocked();
@@ -358,7 +365,7 @@ static int tuning_upgrade(void)
     return r;
 }
 /* Report errors so a failed tuning write cannot mark the project clean. */
-static int tuning_save(unsigned slot)
+static FM1_SONGS int tuning_save(unsigned slot)
 {
     struct groove_tuning tables[GROOVE_TRACKS];
     uint32_t key[3];
@@ -398,7 +405,7 @@ static int tuning_save(unsigned slot)
 }
 /* Read and validate before applying any project state. Missing/corrupt entries
  * mean zero tuning; an I/O error aborts the load and leaves live state intact. */
-static int tuning_read(unsigned slot, const uint32_t key[3],
+static FM1_SONGS int tuning_read(unsigned slot, const uint32_t key[3],
                        struct groove_tuning tables[GROOVE_TRACKS])
 {
     memset(tables, 0, sizeof(struct groove_tuning) * GROOVE_TRACKS);
@@ -527,6 +534,31 @@ void groove_project_metadata(const struct groove_project *p)
     memcpy(project_name, p->name, sizeof project_name);
     ++project_revision;
 }
+#if FM1_GLITCH
+/* GLITCH keeps its patterns itself: no FM1 project slots, imports, exports
+ * or demo songs. Device settings below (radio, clock, MIDI) stay as they are. */
+int groove_project_info(unsigned slot, char name[13])
+{
+    if (slot >= GROOVE_PROJECT_SLOTS || !name)
+        return GROOVE_PROJECT_INVALID;
+    memcpy(name, "EMPTY       ", 12);
+    name[12] = 0;
+    return GROOVE_PROJECT_EMPTY;
+}
+int groove_project_save_slot(unsigned slot) { (void)slot; return GROOVE_PROJECT_INVALID; }
+int groove_project_load_slot(unsigned slot) { (void)slot; return GROOVE_PROJECT_EMPTY; }
+int groove_project_import(const uint8_t *bytes, unsigned length)
+{
+    (void)bytes; (void)length;
+    return GROOVE_PROJECT_INVALID;
+}
+int groove_project_export(uint8_t *bytes, unsigned capacity)
+{
+    (void)bytes; (void)capacity;
+    return GROOVE_PROJECT_INVALID;
+}
+int groove_factory_load(unsigned index) { (void)index; return GROOVE_PROJECT_INVALID; }
+#else
 int groove_project_info(unsigned slot, char name[13])
 {
     if (slot >= GROOVE_PROJECT_SLOTS || !name)
@@ -673,6 +705,7 @@ int groove_factory_load(unsigned index)
     if (!r) { tuning_zero(); groove_project_touch(); }
     return r;
 }
+#endif /* FM1_GLITCH */
 /* BLE MIDI follows the radio master switch. Ignore the old separate MIDI-off
  * preference without changing the stored settings layout or writing at boot. */
 unsigned groove_settings_radio_flags(void) { return (GROOVE_RADIO_ALL ^ settings.radio_off) | GROOVE_RADIO_MIDI; }

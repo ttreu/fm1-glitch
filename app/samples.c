@@ -1,11 +1,35 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception */
+/* Modified 2026-10 by Thomas Treu for GLITCH: sample bank compiled out under FM1_GLITCH (GLITCH keeps its patterns there). */
 #include "fm1_engine_control.h"
 #include "fm1_device.h"
 #include "instrument.h"
 #include "sampledrum.h"
 #include "fm_patch.h"
 #include <string.h>
+#include "glitch.h"
 
+#if FM1_GLITCH
+/* GLITCH keeps its patterns in the sample area and plays no samples: the
+ * bank is never bound, and the Workbench cannot import one (which would
+ * overwrite the patterns). Status 0 = no bank. */
+void groove_samples_init(void) {}
+void groove_samples_poll(void) {}
+unsigned groove_samples_status(void) { return 0; }
+unsigned groove_samples_size(void) { return 0; }
+int groove_samples_begin(unsigned bytes) { (void)bytes; return GROOVE_PROJECT_INVALID; }
+int groove_samples_write(unsigned offset, const uint8_t *data, unsigned bytes)
+{
+    (void)offset; (void)data; (void)bytes;
+    return GROOVE_PROJECT_INVALID;
+}
+int groove_samples_finish(void) { return GROOVE_PROJECT_INVALID; }
+void groove_samples_cancel(void) {}
+int groove_samples_read(unsigned offset, uint8_t *data, unsigned bytes)
+{
+    (void)offset; (void)data; (void)bytes;
+    return GROOVE_PROJECT_INVALID;
+}
+#else
 /* Single bank, no hidden second copy. CRC and a last-written commit word make
  * an interrupted import visibly incomplete. Projects occupy separate sectors.
  * The browser retains/downloads a complete bank before replacing one slot. */
@@ -239,3 +263,4 @@ int groove_samples_read(unsigned offset, uint8_t *data, unsigned bytes)
         return GROOVE_PROJECT_INVALID;
     return fm1_flash_read(GROOVE_SAMPLE_OFFSET + offset, data, bytes);
 }
+#endif /* FM1_GLITCH */

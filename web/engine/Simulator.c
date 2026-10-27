@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception */
+/* Modified 2026-10 by Thomas Treu for GLITCH: GLITCH test hooks for the browser simulator. */
 /* Browser platform adapter: in-memory display, storage and MIDI input. */
 #include "fm_patch.h"
 #include "internal.h"
@@ -340,6 +341,21 @@ EXPORT("sim_select") int sim_select(unsigned track, unsigned source)
     }
     return 0;
 }
+/* GLITCH DRUMS test hooks. */
+#include "glitch.h"
+/* Test hooks for the GLITCH drum machine. */
+EXPORT("sim_glitch_steps_lo") unsigned sim_glitch_steps_lo(unsigned slot) { return (unsigned)glitch_steps(slot); }
+EXPORT("sim_glitch_steps_hi") unsigned sim_glitch_steps_hi(unsigned slot) { return (unsigned)(glitch_steps(slot) >> 32); }
+EXPORT("sim_glitch_get") unsigned sim_glitch_get(unsigned slot, unsigned param) { return glitch_slot_get(slot, param); }
+EXPORT("sim_glitch_step_ratchet") unsigned sim_glitch_step_ratchet(unsigned slot, unsigned step) { return glitch_step_ratchet(slot, step); }
+EXPORT("sim_glitch_global") unsigned sim_glitch_global(unsigned param) { return glitch_global_get(param); }
+EXPORT("sim_glitch_pattern") unsigned sim_glitch_pattern(void) { return glitch_pattern(); }
+EXPORT("sim_glitch_mutated") unsigned sim_glitch_mutated(void) { return glitch_mutated(); }
+EXPORT("sim_glitch_mutes") unsigned sim_glitch_mutes(void) { return glitch_mutes(); }
+EXPORT("sim_glitch_running") unsigned sim_glitch_running(void) { return glitch_running(); }
+EXPORT("sim_glitch_stored") unsigned sim_glitch_stored(unsigned pattern) { return glitch_pattern_stored(pattern); }
+EXPORT("sim_glitch_perform") unsigned sim_glitch_perform(void) { return glitch_performing(); }
+EXPORT("sim_glitch_punch") unsigned sim_glitch_punch(void) { return glitch_punching(); }
 EXPORT("sim_block_frames") unsigned sim_block_frames(void) { return FM1_BLOCK_FRAMES; }
 /* Read-only acceptance state; note 255 means the arpeggiator gate is closed. */
 extern unsigned groove_arp_test_note(unsigned track);

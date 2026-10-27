@@ -1,10 +1,21 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception */
+/* Modified 2026-10 by Thomas Treu for GLITCH: FM1 demo arrangements compiled out under FM1_GLITCH. */
 #include "instrument.h"
 #include "fm_patch.h"
 #include "drum808.h"
 #include "sampledrum.h"
 #include <string.h>
+#include "glitch.h"
 
+#if FM1_GLITCH
+/* GLITCH has its own patterns: no FM1 demo arrangements. */
+const char *groove_factory_name(unsigned index) { (void)index; return ""; }
+int groove_factory_build(unsigned index, struct groove_project *p)
+{
+    (void)index; (void)p;
+    return GROOVE_PROJECT_INVALID;
+}
+#else
 /* FM1 arrangements. Small musical recipes expand into the normal
  * editable project format, avoiding sixteen 4 KiB images in program Flash.
  * No random generation, engine allocation or live-state changes happen here.
@@ -283,3 +294,4 @@ int groove_factory_build(unsigned index, struct groove_project *p)
     }
     return groove_project_valid(p) ? 0 : GROOVE_PROJECT_INVALID;
 }
+#endif /* FM1_GLITCH */

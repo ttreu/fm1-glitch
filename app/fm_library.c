@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception */
+/* Modified 2026-10 by Thomas Treu for GLITCH: DX7 voice library compiled out under FM1_GLITCH. */
 #include "instrument.h"
 #include "fm_patch.h"
 #include "fm1_device.h"
@@ -6,37 +7,10 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include "glitch.h"
 
-/* Standard 128-byte, seven-bit VMEM voices need 112 bytes on Flash. Each
- * sector consequently has room for its own CRC/commit header. The shared
- * project staging sector holds an entire replacement until recovery finishes;
- * an interrupted write never destroys the last committed bank. */
-enum { BANK_MAGIC=0x31424d46U, STAGE=GROOVE_PROJECT_SLOTS*4096, PACKED_VOICE=112 };
-struct bank { uint32_t magic, version, index, crc, commit; uint8_t voice[32][PACKED_VOICE]; };
-_Static_assert(sizeof(struct bank) <= 4096, "DX7 bank and journal fit one sector");
-static const struct bank *banks[4];
-static int blocked;
 static FM1_DSP_DATA const uint8_t op_max[21]={99,99,99,99,99,99,99,99,99,99,99,3,3,7,3,7,99,1,31,99,14};
 static FM1_DSP_DATA const uint8_t global_max[19]={99,99,99,99,99,99,99,99,31,7,1,99,99,99,99,1,5,7,48};
-
-static FM1_DSP_CODE void unpack7(uint8_t raw[128], const uint8_t packed[112])
-{
-    for (unsigned i=0;i<128;++i) {
-        unsigned bit=i*7U, at=bit>>3, shift=bit&7U;
-        unsigned value=packed[at]>>shift;
-        if (shift>1) value|=(unsigned)packed[at+1]<<(8U-shift);
-        raw[i]=(uint8_t)(value&127U);
-    }
-}
-static void pack7(uint8_t packed[112], const uint8_t raw[128])
-{
-    memset(packed,0,112);
-    for (unsigned i=0;i<128;++i) {
-        unsigned bit=i*7U, at=bit>>3, shift=bit&7U;
-        packed[at]|=(uint8_t)(raw[i]<<shift);
-        if (shift>1) packed[at+1]|=(uint8_t)(raw[i]>>(8U-shift));
-    }
-}
 FM1_DSP_CODE void groove_fm_unpack(uint8_t p[156], const uint8_t b[128])
 {
     for (unsigned op=0;op<6;++op) {
@@ -68,6 +42,52 @@ void groove_fm_pack(uint8_t b[128], const uint8_t p[156])
     memcpy(b+102,p+126,8); b[110]=p[134]; b[111]=p[135]|(p[136]<<3);
     memcpy(b+112,p+137,4); b[116]=p[141]|(p[142]<<1)|(p[143]<<4);
     memcpy(b+117,p+144,11);
+}
+#if FM1_GLITCH
+/* GLITCH plays no DX7: no user voice library (the Workbench reports it as
+ * unavailable). The SDK still asks for a program now and then. */
+void groove_fm_library_init(void) {}
+unsigned groove_fm_library_available(void) { return 0; }
+int groove_fm_library_recover(void) { return 0; }
+int groove_fm_library_read(unsigned bank, uint8_t vmem[4096])
+{
+    (void)bank; (void)vmem;
+    return GROOVE_PROJECT_INVALID;
+}
+int groove_fm_library_write(unsigned bank, const uint8_t vmem[4096])
+{
+    (void)bank; (void)vmem;
+    return GROOVE_PROJECT_INVALID;
+}
+FM1_DSP_CODE void groove_fm_program(uint8_t p[156], unsigned program) { groove_fm_factory(p, program); }
+#else
+/* Standard 128-byte, seven-bit VMEM voices need 112 bytes on Flash. Each
+ * sector consequently has room for its own CRC/commit header. The shared
+ * project staging sector holds an entire replacement until recovery finishes;
+ * an interrupted write never destroys the last committed bank. */
+enum { BANK_MAGIC=0x31424d46U, STAGE=GROOVE_PROJECT_SLOTS*4096, PACKED_VOICE=112 };
+struct bank { uint32_t magic, version, index, crc, commit; uint8_t voice[32][PACKED_VOICE]; };
+_Static_assert(sizeof(struct bank) <= 4096, "DX7 bank and journal fit one sector");
+static const struct bank *banks[4];
+static int blocked;
+
+static FM1_DSP_CODE void unpack7(uint8_t raw[128], const uint8_t packed[112])
+{
+    for (unsigned i=0;i<128;++i) {
+        unsigned bit=i*7U, at=bit>>3, shift=bit&7U;
+        unsigned value=packed[at]>>shift;
+        if (shift>1) value|=(unsigned)packed[at+1]<<(8U-shift);
+        raw[i]=(uint8_t)(value&127U);
+    }
+}
+static void pack7(uint8_t packed[112], const uint8_t raw[128])
+{
+    memset(packed,0,112);
+    for (unsigned i=0;i<128;++i) {
+        unsigned bit=i*7U, at=bit>>3, shift=bit&7U;
+        packed[at]|=(uint8_t)(raw[i]<<shift);
+        if (shift>1) packed[at+1]|=(uint8_t)(raw[i]>>(8U-shift));
+    }
 }
 static int voice_valid(const uint8_t raw[128])
 {
@@ -185,3 +205,4 @@ int groove_fm_library_write(unsigned index, const uint8_t raw[4096])
     if (!r) r=groove_fm_library_recover();
     fm1_engine_resume(); return r;
 }
+#endif /* FM1_GLITCH */
