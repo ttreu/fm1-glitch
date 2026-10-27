@@ -6,9 +6,11 @@ synthesized (clicks, click trains, digital crunch, noise snaps, micro kicks,
 speaker pops, too-short loops, very high beeps …), loops can live and mutate
 from bar to bar, and stutter, ratchet and reverse effects are on the keys.
 
-> **Beta – a hobby project.** GLITCH runs in the browser simulator and passes
-> its tests, but it has **not been tested on FM-1 hardware yet**. Test reports
-> from FM-1 owners are very welcome (see below). No support is promised.
+> **Beta – a hobby project.** GLITCH runs on a real FM-1: the first hardware
+> test (October 2026) showed a CPU load **below 30 %** with dense beats and
+> effects, and the sound comes across as in the simulator. It has been tried
+> on one unit so far, so test reports from more FM-1 owners are very welcome
+> (see below). No support is promised.
 
 Built on [M-VAVE FM1 Open](https://github.com/m-vave/fm1_open) (V14); the
 original README is kept in [README.fm1-open.md](README.fm1-open.md).

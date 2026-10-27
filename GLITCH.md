@@ -196,7 +196,8 @@ projects, voices and samples answer with an error under GLITCH.
 
 ## Status
 
-Built and checked in the simulator and with native DSP tests. **Not yet
-tested on hardware.** Check the CPU figure on the HOME page: with dense
-beats, ratchets, all effects and a stutter running it must stay well below
-100 %.
+Built and checked in the simulator and with native DSP tests. **First
+hardware test (October 2026, one FM-1):** flashing with the command-line
+tool worked, the CPU figure on the HOME page stayed **below 30 %** with dense
+beats, effects and a stutter, and the sound matches the simulator. More
+reports from other units are welcome; the CPU figure is the number to watch.

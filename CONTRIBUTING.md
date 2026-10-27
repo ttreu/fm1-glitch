@@ -4,8 +4,9 @@ GLITCH is a hobby project. Help is welcome, answers may take a while.
 
 ## Most useful: hardware test reports
 
-GLITCH has been tested in the browser simulator and with native DSP tests,
-not yet on many real FM-1 units. Please use the **Hardware test report**
+GLITCH has been tested in the browser simulator, with native DSP tests and
+on one real FM-1 (CPU below 30 %, sound as in the simulator), not yet on
+many units. Please use the **Hardware test report**
 issue template and tell:
 
 - the firmware build (shown by `python3 tools/flash_fm1.py info`, or the
