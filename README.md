@@ -6,6 +6,12 @@ synthesized (clicks, click trains, digital crunch, noise snaps, micro kicks,
 speaker pops, too-short loops, very high beeps …), loops can live and mutate
 from bar to bar, and stutter, ratchet and reverse effects are on the keys.
 
+<p align="center"><img src="docs/img/panel-2.webp" alt="GLITCH on the FM-1 (browser simulator): a microsound beat running" width="760"></p>
+
+<p align="center"><img src="docs/img/lcd-rhythm.webp" alt="GLITCH display" width="250"> <img src="docs/img/lcd-sound.webp" alt="GLITCH display" width="250"> <img src="docs/img/lcd-kit.webp" alt="GLITCH display" width="250"></p>
+
+<p align="center"><b><a href="https://subcity.at/flash/fm1-glitch-drums/">Install in the browser</a></b> · <a href="https://subcity.at/demo/fm1-glitch-drums/">Try the simulator</a> · <a href="https://subcity.at/fm1-glitch-drums/">Downloads &amp; guide</a></p>
+
 > **Beta – a hobby project.** GLITCH runs on a real FM-1: the first hardware
 > test (October 2026) showed a CPU load **below 30 %** with dense beats and
 > effects, and the sound comes across as in the simulator. It has been tried
@@ -35,10 +41,10 @@ The full manual is [GLITCH.md](GLITCH.md).
 
 ## Install
 
-Download `FM1-GLITCH.html` from the [latest release](../../releases), open it
-in Chrome or Edge, connect the FM-1 by USB and use *Device update*. The page
-also contains the original M-VAVE V15 firmware to go back (*Recovery & force
-update*).
+**In the browser:** open [subcity.at/flash/fm1-glitch-drums](https://subcity.at/flash/fm1-glitch-drums/) in Chrome or
+Edge, connect the FM-1 by USB and use *Device update* (coming from the stock firmware:
+*Recovery & force update*). The page also holds the original M-VAVE V15 firmware to go back.
+The same page is in the download on [subcity.at/fm1-glitch-drums](https://subcity.at/fm1-glitch-drums/) and in the [latest release](../../releases).
 
 **Before flashing:** back up your projects, voices and samples with the
 firmware that is on the device now. GLITCH stores its patterns in the sample
