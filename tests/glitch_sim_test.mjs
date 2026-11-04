@@ -60,6 +60,39 @@ const finite = (a) => a.every(Number.isFinite);
   m.tap(BTN, B.PLAY); m.run(3);
   check(rms(m.run(0.5)) < 0.01, 'PLAY again stops (tails fade)');
 }
+// ---- button and key lights (as in GLIDER)
+{
+  const m = await machine();
+  const led = (i) => new Uint8Array(m.x.memory.buffer, m.x.sim_state(), 209)[168 + i];
+  const all = [...Array(14).keys()];
+  check(all.every((b) => m.x.sim_led_dim(b) === 1), 'all 14 buttons glow faintly after boot');
+  check(led(B.HOME) === 1 && led(B.EDIT) === 0 && led(B.PLAY) === 0, 'HOME lit on the HOME page, the others only glow');
+  check(m.x.sim_led_green() === 0 && m.x.sim_led_dim(B.PLAY) === 1, 'stopped: PLAY glows white, green off');
+  check(led(14 + 0) === 1, 'the selected slot key is lit right after boot (first write)');
+  m.tap(BTN, B.EDIT);
+  check(led(B.EDIT) === 1 && led(B.HOME) === 0, 'EDIT lit on a slot page');
+  m.tap(BTN, B.SCL);
+  check(led(B.SCL) === 1 && led(B.EDIT) === 0, 'SEL lit on the KIT page');
+  m.tap(BTN, B.LFO);
+  check(led(B.LFO) === 1 && led(B.FX) === 1, 'LFO and FX lit on the filter page');
+  m.tap(BTN, B.PLAY);
+  check(m.x.sim_led_green() === 1 && m.x.sim_led_dim(B.PLAY) === 0 && led(B.PLAY) === 0,
+    'running: PLAY green, no white');
+  m.down(BTN, B.SEQ);
+  check(led(B.SEQ) === 1, 'a held button lights fully');
+  m.up(BTN, B.SEQ);
+  check(led(B.SEQ) === 0 && m.x.sim_led_dim(B.SEQ) === 1, 'released: back to the glow');
+  m.tap(BTN, B.OCT_UP);
+  check(led(B.OCT_UP) === 1, 'OCT+ lit on a later step page');
+  m.tap(BTN, B.OCT_DOWN);
+  check(led(B.OCT_UP) === 0, 'back on step page 1: OCT+ only glows');
+  m.down(BTN, B.GLO); m.tap(KEY, 7); m.up(BTN, B.GLO);
+  check(led(B.GLO) === 1, 'GLO lit while slots are muted');
+  m.tap(BTN, B.GLO);
+  check(led(B.GLO) === 0, 'GLO glows again when all slots play');
+  m.tap(BTN, B.PLAY);
+  check(m.x.sim_led_green() === 0 && m.x.sim_led_dim(B.PLAY) === 1, 'stopped again: green off, white glow');
+}
 // ---- every sound source plays, stays finite
 {
   const m = await machine();

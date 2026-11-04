@@ -19,6 +19,8 @@
  * SAVE      store the live loop in its pattern; SAVE held + white key  store in pattern 1-16
  * Knobs:    K1-K4 edit the page, SELECT slot, PRESETS pattern (next bar while running) */
 #include "glitch.h"
+void fm1_led_dim(unsigned key, int on); /* app/board/panel.c: a faint glow where fm1_led_set is off */
+void fm1_led_play_green(int on); /* app/board/panel.c: the green LED of PLAY */
 #ifndef FM1_HOST_TEST
 unsigned fm1_audio_load_percent(void); /* app/board/audio.c */
 #endif
@@ -192,8 +194,8 @@ static void g_draw(void)
  * key while GLO / HOME / FX is held; PLAY lights while running. */
 static void g_leds(const struct fm1_controls *c)
 {
-    static uint32_t shown = ~0U;
-    static unsigned buttons_shown = ~0U;
+    static uint32_t shown;
+    static unsigned known; /* the first call writes all 27 */
     uint32_t bits = 0;
     if (c->buttons & BUTTON(GLO)) bits = glitch_mutes();
     else if (c->buttons & BUTTON(HOME)) bits = 1U << g_white_key[glitch_pattern() & 15U];
@@ -203,17 +205,42 @@ static void g_leds(const struct fm1_controls *c)
         for (unsigned i = 0; i < 16; ++i) if ((steps >> i) & 1U) bits |= 1U << g_white_key[i];
         bits |= 1U << g_slot;
     }
-    if (bits != shown) {
-        for (unsigned key = 0; key < 27; ++key)
-            if (((bits ^ shown) >> key) & 1U) fm1_led_set(key + 14U, (int)((bits >> key) & 1U));
-        shown = bits;
-    }
-    unsigned b = (glitch_running() ? 1U : 0U) | (glitch_mutated() ? 2U : 0U);
-    if (b != buttons_shown) {
-        fm1_led_set(PLAY, (int)(b & 1U));
-        fm1_led_set(REC, (int)((b >> 1) & 1U));
-        buttons_shown = b;
-    }
+    if (known && bits == shown) return;
+    for (unsigned key = 0; key < 27; ++key)
+        if (!known || (((bits ^ shown) >> key) & 1U)) fm1_led_set(key + 14U, (int)((bits >> key) & 1U));
+    shown = bits;
+    known = 1;
+}
+/* Button LEDs show where you are and what is going on (as in GLIDER):
+ * HOME / EDIT / SEL / FX  the open page (ENV and LFO also on the page they
+ * jump to: SOUND and FILTER), OCT+ a later step page, REC the loop has
+ * mutated (REC undoes it), GLO some slots are muted, PLAY green while the
+ * sequencer runs (white glow when stopped). All 14 glow faintly so their
+ * labels can be read, and light fully while held. Nothing blinks. */
+static void g_button_leds(const struct fm1_controls *c)
+{
+    static unsigned shown, known; /* the first call writes all 14 */
+    unsigned page = g_page, bits = 0;
+    bits |= (page == PAGE_HOME) << HOME;
+    bits |= (page >= PAGE_SOUND && page <= PAGE_REVERSE) << EDIT;
+    bits |= (page == PAGE_SOUND) << ENV;
+    bits |= (page == PAGE_FILTER) << LFO;
+    bits |= (page == PAGE_KIT) << SCL;
+    bits |= (page >= PAGE_FILTER && page <= PAGE_SYNC) << FX;
+    bits |= (g_step_page > 0) << OCT_UP;
+    bits |= (glitch_mutated() != 0) << REC;
+    bits |= (glitch_mutes() != 0) << GLO;
+    bits |= c->buttons & 0x3fffU & ~(1U << PLAY); /* held: full light */
+    bits |= c->buttons & (1U << PLAY);            /* PLAY held: full white */
+    /* PLAY: green while the sequencer runs, the white glow while stopped. */
+    static int green = -1;
+    int running = glitch_running() != 0;
+    if (running != green) { fm1_led_play_green(running); fm1_led_dim(PLAY, !running); green = running; }
+    if (known && bits == shown) return;
+    for (unsigned b = 0; b < 14; ++b)
+        if (!known || (((bits ^ shown) >> b) & 1U)) fm1_led_set(b, (int)((bits >> b) & 1U));
+    shown = bits;
+    known = 1;
 }
 static void g_control(const struct fm1_controls *c)
 {
@@ -225,6 +252,7 @@ static void g_control(const struct fm1_controls *c)
         for (unsigned t = 0; t < GROOVE_TRACKS; ++t)
             if (groove_track_role(t) != GROOVE_TRACK_OFF) (void)groove_track_role_set(t, GROOVE_TRACK_OFF);
         for (unsigned key = 0; key < 41; ++key) fm1_led_set(key, 0);
+        for (unsigned b = 0; b < 14; ++b) fm1_led_dim(b, 1); /* backlight for the labels */
         g_keys_before = c->keys; /* keys held at boot do nothing */
         g_set_notice("GLITCH", now);
     }
@@ -353,6 +381,7 @@ static void g_control(const struct fm1_controls *c)
     static uint32_t activity_at;
     if (now - activity_at >= 40U) { activity_at = now; g_activity_shown = glitch_activity(); }
     g_leds(c);
+    g_button_leds(c);
     if (saved_cache.shown_page == ~0U) g_full = 1; /* LCD transfer error: repaint all */
     if (changed || g_full || now - g_frame_ms >= 40U) {
         g_frame_ms = now;

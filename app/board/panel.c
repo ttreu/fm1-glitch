@@ -48,3 +48,10 @@ void fm1_led_set(unsigned key, int on)
 {
     fm1_led_key(key, on);
 }
+void fm1_led_play_green(int on); /* app/glitch_screen.inc */
+void fm1_led_play_green(int on) { fm1_led_green(on); }
+void fm1_led_dim(unsigned key, int on); /* app/glitch_screen.inc */
+void fm1_led_dim(unsigned key, int on)
+{
+    fm1_led_key_dim(key, on);
+}

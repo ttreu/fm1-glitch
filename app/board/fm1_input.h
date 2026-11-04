@@ -29,6 +29,11 @@ static struct {
     uint8_t column,queued,stalled;
 } fm1_in;
 static volatile uint8_t fm1_led[FM1_NCOL];
+/* Dim LEDs light in one of every FM1_LED_DIM_FRAMES scan frames (the panel
+ * scans at 10 kHz, 11 columns: about 909 frames/s, so 1/6 is ~150 Hz). */
+enum { FM1_LED_DIM_FRAMES = 6 };
+static volatile uint8_t fm1_led_dim_bits[FM1_NCOL];
+static uint8_t fm1_led_frame;
 static uint8_t fm1_scan_bytes[2] __attribute__((aligned(4)));
 
 #ifndef FM1_SCAN_REG
@@ -60,7 +65,7 @@ static inline __attribute__((always_inline)) void fm1_scan_latch(unsigned column
     FM1_PR(FM1_PA,FM1_OUT)&=~a_mask;FM1_PR(FM1_PH,FM1_OUT)&=~h_mask;
     FM1_PR(FM1_PA,FM1_OUT)|=1u<<1;
     FM1_PR(FM1_PA,FM1_OUT)&=~(1u<<1);
-    unsigned leds=fm1_led[column];
+    unsigned leds=fm1_led[column]|(fm1_led_frame==0?fm1_led_dim_bits[column]:0u);
     FM1_PR(FM1_PA,FM1_OUT)|=(leds&6u)<<8;
     FM1_PR(FM1_PH,FM1_OUT)|=((leds&8u)<<3)|((leds&16u)<<5);
     fm1_in.column=(uint8_t)column;
@@ -127,7 +132,10 @@ static FM1_AUDIO_CODE void fm1_input_tick(void)
     unsigned next=fm1_in.queued;
     fm1_scan_latch(next);
     fm1_scan_queue(next==10?0:next+1);
-    if(column==10)fm1_scan_decode();
+    if(column==10) {
+        fm1_scan_decode();
+        if(++fm1_led_frame>=FM1_LED_DIM_FRAMES)fm1_led_frame=0;
+    }
 }
 static void fm1_input_init(void)
 {
@@ -153,4 +161,17 @@ static void fm1_led_key(uint32_t key,int on)
     if(key>=FM1_NKEY)return;
     unsigned pin=fm1_key_pin[key],column=pin>>4,mask=1u<<(pin&15);
     uint8_t value=fm1_led[column];fm1_led[column]=(uint8_t)(on?value|mask:value&~mask);
+}
+/* The green LED of PLAY: column 8, row 1 of the LED matrix (no key uses it). */
+static void fm1_led_green(int on)
+{
+    uint8_t value=fm1_led[8];
+    fm1_led[8]=(uint8_t)(on?value|2u:value&~2u);
+}
+/* A faint glow (a backlight) under the full brightness of fm1_led_key. */
+static void fm1_led_key_dim(uint32_t key,int on)
+{
+    if(key>=FM1_NKEY)return;
+    unsigned pin=fm1_key_pin[key],column=pin>>4,mask=1u<<(pin&15);
+    uint8_t value=fm1_led_dim_bits[column];fm1_led_dim_bits[column]=(uint8_t)(on?value|mask:value&~mask);
 }

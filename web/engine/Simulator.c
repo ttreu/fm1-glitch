@@ -60,6 +60,14 @@ void fm1_controls_read(struct fm1_controls *value)
     memset(controls.encoders, 0, sizeof controls.encoders);
 }
 void fm1_led_set(unsigned key, int on) { if (key < sizeof leds) leds[key] = on != 0; }
+static uint8_t green_led;
+void fm1_led_play_green(int on);
+void fm1_led_play_green(int on) { green_led = on != 0; }
+EXPORT("sim_led_green") unsigned sim_led_green(void) { return green_led; }
+static uint8_t dim_leds[41];
+void fm1_led_dim(unsigned key, int on);
+void fm1_led_dim(unsigned key, int on) { if (key < sizeof dim_leds) dim_leds[key] = on != 0; }
+EXPORT("sim_led_dim") unsigned sim_led_dim(unsigned key) { return key < sizeof dim_leds ? dim_leds[key] : 0; }
 /* Track 16-row bands until the browser consumes the next display update. */
 static void screen_changed(unsigned y, unsigned h)
 {
@@ -223,7 +231,7 @@ EXPORT("sim_boot") void sim_boot(unsigned clear)
         ++flash_revision;
     }
     memset(&controls, 0, sizeof controls); controls.battery = 900; controls.knob = 1023;
-    memset(leds, 0, sizeof leds); memset(previous, 0, sizeof previous);
+    memset(leds, 0, sizeof leds); memset(dim_leds, 0, sizeof dim_leds); memset(previous, 0, sizeof previous);
     capture_read = capture_write = capture_on = midi_busy = 0; midi_ready = 6; midi_source = FM1_MIDI_USB;
     now_ms = 0; frames = 0; gate = midi_read = midi_write = midi_reset = 0;
     fm1_output_reset();

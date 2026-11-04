@@ -139,6 +139,15 @@ seed. Tempo is kept when a pattern is loaded while running or under MIDI clock.
 **MIDI in** (USB, BLE, DIN): notes from C1 (any channel) play the slots,
 Start / Continue / Stop drive the sequencer, MIDI clock sets the tempo.
 
+**Lights:** all 14 buttons glow faintly so their labels can be read, and
+light fully while held. Full light also shows where you are: HOME, EDIT
+(slot pages), SEL (KIT), FX (effect pages), ENV on the SOUND page and LFO on
+the FILTER page they jump to; OCT+ while a later step page (17-64) is open,
+REC while the loop has mutated (REC undoes it), GLO while slots are muted.
+PLAY is green while the sequencer runs and glows white when it stops.
+Nothing blinks. The keys show the steps of the selected slot (or mutes /
+the pattern / the effect key while GLO / HOME / FX is held).
+
 ## Building on macOS
 
 Toolchains next to this folder (`../toolchains`, a link to the shared `Developer/FM1 toolchains`):
